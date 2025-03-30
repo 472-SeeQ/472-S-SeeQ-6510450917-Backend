@@ -1,13 +1,12 @@
-name: Laravel CI
-
+name: SeeQ CI
 on:
   push:
-    branches: [ main, develop, 'feature/login-testing', 'feature/user-management-testing', 'feature/reminders-testing', 'feature/queue-type-testing', 'feature/accounts-testing' ]
+    branches: [ develop ]
   pull_request:
-    branches: [ main, develop]
+    branches: [ develop ]
 
 jobs:
-  build-test:
+  test-build:
     runs-on: ubuntu-latest
 
     services:
@@ -42,7 +41,7 @@ jobs:
       - name: Set up PHP
         uses: shivammathur/setup-php@v2
         with:
-          php-version: '8.4'
+          php-version: "8.4"
 
       - name: Install Dependencie
         run: composer install
@@ -58,3 +57,25 @@ jobs:
 
       - name: Run Tests
         run: php artisan test
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Generate WWWGROUP
+        id: generate-wwwgroup
+        run: |
+          WWWGROUP=$(id -g)
+          echo "WWWGROUP=${WWWGROUP}" >> $GITHUB_ENV
+
+      - name: Build Docker image with BuildX
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./Dockerfile
+          push: false
+          platforms: linux/amd64,linux/arm64
+          tags: 472-cicd:develop
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          build-args: |
+            WWWGROUP=${{ env.WWWGROUP }}
